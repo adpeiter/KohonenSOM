@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+
 public class Map
 {
 	private Neuron[,] outputs;  // Collection of weights.
@@ -93,7 +94,7 @@ public class Map
 				currentError += TrainPattern(pattern);
 				TrainingSet.Remove(pattern);
 			}
-			Console.WriteLine(currentError.ToString(“0.0000000”));
+			Console.WriteLine(currentError.ToString("0.0000000"));
 		}
 	}
 	private double TrainPattern(double[] pattern)
@@ -161,7 +162,7 @@ public class Neuron
 	}
 	private double Gauss(Neuron win, int it)
 	{
-		double distance = Math.Sqrt(Math.Pow(win.X – X, 2) + Math.Pow(win.Y – Y, 2));
+		double distance = Math.Sqrt(Math.Pow(win.X – X, 2) + Math.Pow(win.Y – Y, 2)); // distância euclideana entre o nó e o bmu 
 		return Math.Exp(-Math.Pow(distance, 2) / (Math.Pow(Strength(it), 2)));
 	}
 	private double LearningRate(int it)
@@ -170,7 +171,7 @@ public class Neuron
 	}
 	private double Strength(int it)
 	{
-		return Math.Exp(-it / nf) * length;
+		return Math.Exp(-it / nf) * length; // este é o raio da vizinhança... está meio lixo, pois toda vez é recalculado
 	}
 	public double UpdateWeights(double[] pattern, Neuron winner, int it)
 	{

@@ -1,28 +1,45 @@
 /*
- * Kohonen SOM
- * 2017/1 - IA - T3
+ * UFFS - Universidade Federal da Fronteira Sul
+ * 2017/1 - Inteligência Artificial - Trabalho 3
+ * Kohonen Self Organized Maps
  * Aristides Darlan Peiter Tondolo, Maicon Ghidolin, Wagner Frana
  */
-package kohonen;
+
 class Main {
  
+	private static String FILE_NAME_TRAIN = "database/optdigits-orig.tra";
+	private static String FILE_NAME_VALIDATION = "database/optdigits-orig.cv";
+	private static double ERROR = 0.000001;
+	private static int MAX_ITERATIONS = 5;
+	private static int DATA_DIMENSION = 32*32;
+	private static int SOM_SIZE = 10;
+	
+	private final static String argIteration = "i:";
+	private int argIx;
+	
+	private final static String argPattern = "[a-zA-Z]{1,2}[:](\\d{1,}|(\\d|[a-zA-Z.-_])*)";
+	
     public static void main (String args[]) {
         
-        String fileNameTrain, fileNameTest;
-
-        if (args) {
-            for (int i = 0; args.length; i++) {
-                if (args[i].equals("-t"))
-                    fileNameTrain = args[i+1];
-                else if (args[i].equals("-v"))
-                    fileNameTest = args[i+1];
-            }
-        }
-
-        if (!fileNameTrain)
-            System.out.println("Faltando parâmetro -t (dados para treinamento).");
-        if (!fileNameTest)
-            System.out.println("Faltando parâmetro -v (dados para validação).");
-        
+		if (args != null) {
+			try {
+				for (int i = 0; i < args.length; i++) {
+					if (args[i].startsWith(argIteration))
+						MAX_ITERATIONS = Integer.parseInt(args[i].substring(argIteration.length()));
+				}
+			}
+			catch (Exception ex) {
+				System.out.println("Read parameters fail...");
+			}
+		}
+		
+		System.out.println(MAX_ITERATIONS);
+		
+		SOM som = new SOM(SOM_SIZE, DATA_DIMENSION, MAX_ITERATIONS, ERROR);
+		
+		som.readDataSet(FILE_NAME_TRAIN);
+		som.initialiseNeurons();
+		som.train();
+		        
     }
 }
