@@ -6,55 +6,66 @@ import java.lang.Math;
 
 class SOM {
 
-    private int currentIteration;
+    private int currentEpoch;
 	private int dataSize; // tamanho do dado
-	private double error;
-	private int maxIterations;
+	private double variation;
+	private int maxEpochs;
 	private Neuron[][] neurons;
     private int radius;
 	private int size; // tamanho da rede (size x size)
 	private double startLearningRate;
 	private double timeConstant;
 	
-	private ArrayList<double[]> dataSet;
+	private String[][] crossValidationPlaceholder;
+	
+	private ArrayList<ManuscriptChar> inputDataSet, crossValidationDataSet;
 	
 	private final static String pattern1 = "[01]{32}"; // cadeia binária de tamanho 32 
 	private final static String pattern2 = "([ ][0-9]){1}"; // espaço + 1 dígito 
 	
-	public SOM(int size, int dataSize, int maxIterations, double error) {
+	public SOM(int size, int dataSize, int maxEpochs, double variation) {
 		
-		this.currentIteration = 0;
+		this.currentEpoch = 0;
 		this.dataSize = dataSize;
-		this.error = error;
-		this.maxIterations = maxIterations;
+		this.variation = variation;
+		this.maxEpochs = maxEpochs;
 		this.radius = size / 2;
 		this.size = size;
 		this.startLearningRate = 0.1;
-		this.timeConstant = this.maxIterations / Math.log(this.radius); // constante para o cálculo da função de vizinhança
+		this.timeConstant = this.maxEpochs / Math.log(this.radius); // constante para o cálculo da função de vizinhança
 		
 		initialiseNeurons();
 		
 	}
 	
-	public void readDataSet(String file) {
+	public void readTrainingDataSet(String file) {
+		this.inputDataSet = new ArrayList<ManuscriptChar>();
+		readFile(file, this.inputDataSet);
+	}
+	
+	public void readCrossValidadionDataSet(String file) {
+		this.crossValidationDataSet = new ArrayList<ManuscriptChar>();
+		readFile(file, this.crossValidationDataSet);
+	}
+	
+	public void readFile(String file, ArrayList<ManuscriptChar> dataSet) {
 		
 		BufferedReader br;
 		StringBuilder sb;
 		String line;
-		double data[];
+		ManuscriptChar data;
+		double charRepresentation[];
 		int i, j;
 		
 		try {
 			
 			br = new BufferedReader(new FileReader(file));
-			this.dataSet = new ArrayList<double[]>();
 			sb = new StringBuilder();
 			
 			while (true) {
 								
 				while (true) {
 					line = br.readLine();
-					//System.out.println(line);
 					if (line == null)
 						return;
 					if (!line.matches(pattern1))
@@ -63,14 +74,17 @@ class SOM {
 				}
 				
 				if (sb.length() > 0) {
-				
-					data = new double[this.dataSize];
+					
+					charRepresentation = new double[this.dataSize];
 					
 					for (i = 0; i < sb.length(); i++)
-						data[i] = sb.charAt(i) == '0' ? 0 : 1;
+						charRepresentation[i] = sb.charAt(i) == '0' ? 0 : 1;
 					
 					sb.setLength(0);
-					this.dataSet.add(data);
+					data = new ManuscriptChar();
+					data.value = line.matches(pattern2) ? line.charAt(1) : '0';
+					data.representation = charRepresentation;
+					dataSet.add(data);
 					
 				}
 				
@@ -78,8 +92,8 @@ class SOM {
 			
 		}
 		catch (Exception ex) {
-			System.out.println("Crash on read data set...");
-			this.dataSet = null;
+			System.out.println("Crash on read data file...");
+			dataSet = null;
 		}
 		
 	}
@@ -115,46 +129,47 @@ class SOM {
 		// atualizar taxa de aprendizado?
 		
 		Random rand = new Random();
-		double error, neighborhoodStrength, data[], learningRate;
+		double variation, neighborhoodStrength, data[], learningRate;
 		int i;
-		ArrayList<double[]> trainingSet;
+		ArrayList<ManuscriptChar> trainingSet;
+		ManuscriptChar tempManuscriptChar;
 		Neuron bmu;
-
-		this.currentIteration = 0;
-		error = 1; // valor de atualização dos pesos
 		
-		System.out.println("Iterações: " + this.currentIteration + "/" + this.maxIterations);
-		System.out.println("Erro: " + error + "/" + this.error);
+		this.currentEpoch = 0;
+		variation = 1; // valor de atualização dos pesos
 		
-		while (error > this.error && this.currentIteration++ < this.maxIterations) {
+		while (variation > this.variation && this.currentEpoch++ < this.maxEpochs) {
 			
 			i = 0;
-			error = 1;
-			trainingSet = new ArrayList<double[]>();
+			variation = 1;
+			trainingSet = new ArrayList<ManuscriptChar>();
 			
-			for (i = 0; i < this.dataSet.size(); i++) {
-				trainingSet.add(this.dataSet.get(i).clone());
+			for (i = 0; i < this.inputDataSet.size(); i++) {
+				tempManuscriptChar = new ManuscriptChar();
+				tempManuscriptChar.value = this.inputDataSet.get(i).value;
+				tempManuscriptChar.representation = this.inputDataSet.get(i).representation.clone();
+				trainingSet.add(tempManuscriptChar);
 			}
 			
 			while (trainingSet.size() > 0) {
 				
 				i =  trainingSet.size() > 1 ? rand.nextInt(trainingSet.size()-1) : 0;
-				data = trainingSet.get(i);
+				data = trainingSet.get(i).representation;
 				bmu = discoverBMU(data);
-				
+				bmu.value = trainingSet.get(i).value;
 				learningRate = this.learningRate(); // calcula taxa de aprendizado em função da iteração atual
 				neighborhoodStrength = this.neighborhoodStrength(); // atualiza o valor da influência da função neighboorhood
 				
 				for (int j = 0; j < this.size; j++) {
 					for (int k = 0; k < this.size; k++) {
 						// atualiza os pesos com base na função neighboorhood
-						error += this.neurons[j][k].updateWeights(data, bmu, learningRate, neighborhoodStrength);
+						variation += this.neurons[j][k].updateWeights(data, bmu, learningRate, neighborhoodStrength);
 					}
 				}
 				trainingSet.remove(i);
 			}
-			error = Math.abs(error / (this.dataSize * this.dataSize));
-			System.out.println("Error: " + error); 
+			variation = Math.abs(variation / (this.dataSize * this.dataSize));
+			System.out.println("Epoch: " + this.currentEpoch + " Variation: " + variation); 
 			
 		}
 		
@@ -180,19 +195,82 @@ class SOM {
 	}
 	
 	private double neighborhoodStrength() {
-		return this.radius * Math.exp(-(double)this.currentIteration / this.timeConstant);
+		return this.radius * Math.exp(-(double)this.currentEpoch / this.timeConstant);
 	}
 	
 	private double learningRate() {
-		return Math.exp(-this.currentIteration / this.maxIterations) * this.startLearningRate;
+		return Math.exp(-this.currentEpoch / this.maxEpochs) * this.startLearningRate;
 	}
-	
-	public void print() {
+		
+	public void test(int[] result) {
+		
+		this.crossValidationPlaceholder = new String[this.size][this.size];
+		
+		int hits = 0, errors = 0;
+		ManuscriptChar item;
+		int maxMapped = 0;
+		Neuron mapped;
+		String ph;
+		String pad = "";
+		int i;
+		
+		for (i = 0; i < this.crossValidationDataSet.size(); i++) {
+			
+			item = this.crossValidationDataSet.get(i);
+			mapped = discoverBMU(item.representation);
+			
+			if (item.value == mapped.value) {
+				hits++;
+			}
+			else {
+				errors++;
+			}
+			
+			ph = this.crossValidationPlaceholder[mapped.x][mapped.y];
+			if (ph == null) {
+				ph = item.value + "";
+			}
+			else if (ph.indexOf(item.value) < 0) {
+				ph += " " + item.value;
+			}
+			
+			if (ph.length() > maxMapped) {
+				maxMapped = ph.length();
+			}
+			this.crossValidationPlaceholder[mapped.x][mapped.y] = ph;
+			
+		}
+		
+		for (i = 0; i < maxMapped; i++)
+			pad += " ";
+		
+		for (i = 0; i < this.size; i++) {
+			for (int j = 0; j < this.size; j++) {
+				ph = this.crossValidationPlaceholder[i][j];
+				if (ph == null) {
+					this.crossValidationPlaceholder[i][j] = pad;
+				}
+				else {
+					this.crossValidationPlaceholder[i][j] = ph + pad.substring(ph.length());
+				}
+			}
+		}
+		
+		result[0] = hits;
+		result[1] = errors;
 		
 	}
 	
-	public void Test() {
-		
+	public void printTest() {
+		for (int i = 0; i < this.size; i++) {
+			for (int j = 0; j < this.size; j++) {
+				System.out.print(this.crossValidationPlaceholder[i][j]);
+				if (j == this.size - 1)
+					System.out.print("\n");
+				else
+					System.out.print("|");
+			}
+		}
 	}
 	
 }
