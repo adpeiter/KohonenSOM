@@ -5,10 +5,10 @@ class Neuron {
     double weights[];
     int x;
     int y;
-	double value;
-	char label;
+	double distance; // a última distância calculada
+	String label;
 	
-	public Neuron(char label, int x, int y) {
+	public Neuron(String label, int x, int y) {
 		this.label = label;
 		this.x = x;
 		this.y = y;
@@ -32,12 +32,14 @@ class Neuron {
 	
 	public double updateWeights(double[] data, Neuron bmu, double learningRate, double neighborhoodStrength) {
 		
-		double delta, update;
+		double delta, update, neighborhoodInfluence;
 		
 		delta = update = 0;
 		
 		for (int i = 0; i < this.weights.length; i++) {
-			delta = learningRate * neighborhoodInfluence(bmu, neighborhoodStrength) * (data[i] - this.weights[i]);
+			neighborhoodInfluence = this.neighborhoodInfluence(bmu, neighborhoodStrength);
+			System.out.println(neighborhoodInfluence);
+			delta = learningRate * neighborhoodInfluence * (data[i] - this.weights[i]);
 			this.weights[i] += delta;
 			update += delta;
 		}

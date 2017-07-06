@@ -6,6 +6,9 @@ import java.lang.Math;
 
 class SOM {
 
+	private static final String STREMPTY = "";
+	private static final String BLKSPACE = " ";
+
     private int currentEpoch;
 	private int dataSize; // tamanho do dado
 	private double variation;
@@ -107,12 +110,11 @@ class SOM {
 		this.neurons = new Neuron[this.size][this.size];
 		for (i = 0; i < this.size; i++) {
 			for (j = 0; j < this.size; j++) {
-				//System.out.println("\n\nCreating neuron " + i + " " + j + ":");
-				this.neurons[i][j] = new Neuron('0', i, j);
+				this.neurons[i][j] = new Neuron(BLKSPACE, i, j);
 				this.neurons[i][j].weights = new double[this.dataSize];
+				this.neurons[i][j].label = STREMPTY;
 				for (k = 0; k < this.dataSize; k++) {
 					this.neurons[i][j].weights[k] = rand.nextDouble();
-					//System.out.print(k + " " + this.neurons[i][j].weights[k] + " ");
 				}
 			}
 		}
@@ -126,7 +128,8 @@ class SOM {
 		// definir o vetor vencedor
 		// ajustar os pesos do vencedor e dos vizinhos adjacentes pela função neighboorhood
 		// atualizar função neighboorhood
-		// atualizar taxa de aprendizado?
+		// atualizar taxa de aprendizado
+		// repetir até o máximo de épocas ou mínimo de variação
 		
 		Random rand = new Random();
 		double variation, neighborhoodStrength, data[], learningRate;
@@ -156,19 +159,21 @@ class SOM {
 				i =  trainingSet.size() > 1 ? rand.nextInt(trainingSet.size()-1) : 0;
 				data = trainingSet.get(i).representation;
 				bmu = discoverBMU(data);
-				bmu.value = trainingSet.get(i).value;
+				if (bmu.label.indexOf(trainingSet.get(i).value) < 0) {
+					bmu.label += BLKSPACE + trainingSet.get(i).value;
+				}
 				learningRate = this.learningRate(); // calcula taxa de aprendizado em função da iteração atual
 				neighborhoodStrength = this.neighborhoodStrength(); // atualiza o valor da influência da função neighboorhood
 				
 				for (int j = 0; j < this.size; j++) {
 					for (int k = 0; k < this.size; k++) {
-						// atualiza os pesos com base na função neighboorhood
+						// atualiza os pesos com base na função neighboorhood e acumula a variação aplicada
 						variation += this.neurons[j][k].updateWeights(data, bmu, learningRate, neighborhoodStrength);
 					}
 				}
 				trainingSet.remove(i);
 			}
-			variation = Math.abs(variation / (this.dataSize * this.dataSize));
+			variation = Math.abs(variation / Math.pow((double)this.dataSize, 2));
 			System.out.println("Epoch: " + this.currentEpoch + " Variation: " + variation); 
 			
 		}
@@ -177,31 +182,32 @@ class SOM {
 	
 	private Neuron discoverBMU(double[] data)
 	{
+		
 		Neuron bmu = null;
-		double min = Double.MAX_VALUE, dist;
+		double min = Double.MAX_VALUE;
 		
 		for (int i = 0; i < this.size; i++) {
 			for (int j = 0; j < this.size; j++) {
-				dist = this.neurons[i][j].distance(data);
-				//System.out.println("N " + i + "," + j + ": " + dist); 
-				if (dist < min) {
-					min = dist;
+				this.neurons[i][j].distance = this.neurons[i][j].distance(data);
+				if (this.neurons[i][j].distance < min) {
+					min = this.neurons[i][j].distance;
 					bmu = this.neurons[i][j];
 				}
 			}
 		}
-		//System.out.println("N " + bmu.x + "," + bmu.y + ": " + min);
+		
 		return bmu;
+		
 	}
 	
 	private double neighborhoodStrength() {
-		return this.radius * Math.exp(-(double)this.currentEpoch / this.timeConstant);
+		return (double)this.radius * Math.exp(-(double)this.currentEpoch / this.timeConstant);
 	}
 	
 	private double learningRate() {
-		return Math.exp(-this.currentEpoch / this.maxEpochs) * this.startLearningRate;
+		return Math.exp(-(double)this.currentEpoch / (double)this.maxEpochs) * this.startLearningRate;
 	}
-		
+	
 	public void test(int[] result) {
 		
 		this.crossValidationPlaceholder = new String[this.size][this.size];
@@ -210,8 +216,7 @@ class SOM {
 		ManuscriptChar item;
 		int maxMapped = 0;
 		Neuron mapped;
-		String ph;
-		String pad = "";
+		String ph, pad = STREMPTY;
 		int i;
 		
 		for (i = 0; i < this.crossValidationDataSet.size(); i++) {
@@ -219,7 +224,7 @@ class SOM {
 			item = this.crossValidationDataSet.get(i);
 			mapped = discoverBMU(item.representation);
 			
-			if (item.value == mapped.value) {
+			if (mapped.label.indexOf(item.value) >= 0) {
 				hits++;
 			}
 			else {
@@ -228,10 +233,10 @@ class SOM {
 			
 			ph = this.crossValidationPlaceholder[mapped.x][mapped.y];
 			if (ph == null) {
-				ph = item.value + "";
+				ph = item.value + STREMPTY;
 			}
 			else if (ph.indexOf(item.value) < 0) {
-				ph += " " + item.value;
+				ph += BLKSPACE + item.value;
 			}
 			
 			if (ph.length() > maxMapped) {
@@ -242,7 +247,7 @@ class SOM {
 		}
 		
 		for (i = 0; i < maxMapped; i++)
-			pad += " ";
+			pad += BLKSPACE;
 		
 		for (i = 0; i < this.size; i++) {
 			for (int j = 0; j < this.size; j++) {
