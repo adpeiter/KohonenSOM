@@ -1,4 +1,4 @@
 class ManuscriptChar {
-	char value;
+	int value;
 	double representation[];
 }

@@ -1,0 +1,8 @@
+timeConstant = maxEpocas / log(raio)
+forcaDaVizinhanca = raio * (e ^ (-iteracao/timeConstant))
+taxaAprendizado = taxaAprendizadoInicial * (e ^ (-iteracao / maximoEpocas))
+influenciaVizinhanca = e ^ (- (distancia ^ 2) / (2 * forcaDaVizinhanca) ^ 2)
+
+vetorPesos = vetorPesos + taxaAprendizado * influenciaVizinhanca
+
+
