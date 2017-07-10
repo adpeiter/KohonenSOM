@@ -265,7 +265,7 @@ class SOM {
 		StringBuilder sb = new StringBuilder();
 		String phValue, cssClass, dumpFileName;
 		
-		dumpFileName = "E_" + this.maxEpochs + "_S_" + this.size + "_E_" + this.variation + "_" + System.currentTimeMillis() + ".html";
+		dumpFileName = "dump/E_" + this.maxEpochs + "_S_" + this.size + "_E_" + this.variation + "_" + System.currentTimeMillis() + ".html";
 		
 		sb.append("<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Dump Kohonen SOM</title><style>");
 		sb.append("td { text-align: center; width: 30px; } ");
