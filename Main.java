@@ -20,7 +20,7 @@ class Main {
 	private final static String ARG_SOMSIZE = "s:";
 	private final static String ARG_STARTLEARNING = "l:";
 	private final static String ARG_VARIATION = "v:";
-	private final static String ARG_STARTRADIUS = "s:";
+	private final static String ARG_STARTRADIUS = "r:";
 	
 
 	private final static String argPattern = "[a-zA-Z]{1,2}[:](\\d{1,}|(\\d|[a-zA-Z.-_])*)";
