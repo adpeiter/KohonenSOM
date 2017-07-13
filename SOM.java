@@ -1,4 +1,5 @@
 import java.util.*;
+import java.util.stream.*;
 import java.io.*;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -25,12 +26,17 @@ class SOM {
 	private long totalTrainTime;
 	
 	private String[][] crossValidationPlaceholder;
-	
 	private ArrayList<ManuscriptChar> inputDataSet, crossValidationDataSet;
 	
 	private final static String pattern1 = "[01]{32}"; // cadeia binária de tamanho 32 
 	private final static String pattern2 = "([ ][0-9]){1}"; // espaço + 1 dígito 
+	private final static String pattern3 = "(\\d\\(\\d*\\)){1}"; // espaço + 1 dígito 
 	
+	private int[] examples;
+	private int[] errors;
+	private int[] hits;
+	private float[] hitRate;
+
 	public SOM(int size, int dataSize, int maxEpochs, double variation, double startLearningRate, double startRadius) {
 		
 		this.currentEpoch = 0;
@@ -148,7 +154,7 @@ class SOM {
 		
 		msStartTrain = System.currentTimeMillis();
 
-		while (this.currentEpoch++ < this.maxEpochs) {
+		while (this.currentEpoch++ < this.maxEpochs && variation > this.variation) {
 			
 			msStartEpoch = System.currentTimeMillis();
 			
@@ -223,113 +229,168 @@ class SOM {
 		return Math.exp(-(double)this.currentEpoch / (double)this.maxEpochs) * this.startLearningRate;
 	}
 	
-	public void test(int[] result) {
+	public int totalErrors() {
+		return IntStream.of(this.errors).sum();
+	}
+	
+	public int totalHits() {
+		return IntStream.of(this.hits).sum();
+	}
+	
+	public float totalHitRate() {
+		return (float)this.totalHits() / (float)(this.totalErrors() + this.totalHits());
+	}
+	
+	public String totalHitRate3f() {
+		return String.format("%.3f", this.totalHitRate() * 100);
+	}
+	
+	public void test() {
 		
 		this.crossValidationPlaceholder = new String[this.size][this.size];
+		this.errors = new int[10];
+		this.hits = new int[10];
+		this.examples = new int[10];
+		this.hitRate = new float[10];
 		
-		int hits = 0, errors = 0, i = 0;
+		int i, j;
 		ManuscriptChar item;
 		Neuron mapped;
-		String label;
+		String label, phLabel;
+		
+		for (i = 0; i < 10; i++) {
+			this.hits[i] = 0;
+			this.errors[i] = 0;
+		}
 		
 		for (i = 0; i < this.crossValidationDataSet.size(); i++) {
 			
 			item = this.crossValidationDataSet.get(i);
 			mapped = discoverBMU(item.representation);
 			
+			mapped.tested[item.value]++;
+			
 			if (mapped.lastMappedChar == item.value) {
-				hits++;
+				this.hits[item.value]++;
 			}
 			else {
-				errors++;
+				this.errors[item.value]++;
 			}
 			
-			label = item.value + STREMPTY;
-			
-			if (this.crossValidationPlaceholder[mapped.x][mapped.y] == null) {
-				this.crossValidationPlaceholder[mapped.x][mapped.y] = label;
-			}
-			else if (this.crossValidationPlaceholder[mapped.x][mapped.y].indexOf(label) < 0) {
-				this.crossValidationPlaceholder[mapped.x][mapped.y] += label;
-			}
-						
 		}
 		
-		result[0] = hits;
-		result[1] = errors;
+		for (i = 0; i < 10; i++) {
+			this.examples[i] = this.hits[i] + this.errors[i];
+			this.hitRate[i] = (float)this.hits[i] / (float)this.examples[i];
+			this.hitRate[i] *= 100;
+		}
 		
 	}
 	
 	public void dumpTest() {
 		
 		StringBuilder sb = new StringBuilder();
-		String phValue, cssClass, dumpFileName;
+		String phValue, cssClass, dumpFileName, tdTitle;
+		int i, j, k;
 		
-		dumpFileName = "dump/E_" + this.maxEpochs + "_S_" + this.size + "_E_" + this.variation + "_" + System.currentTimeMillis() + ".html";
+		dumpFileName = "S" + this.size + "_E" + this.maxEpochs + "_L" + (this.startLearningRate  + "_R" + this.startRadius).replace(".", "d") + ".html";
 		
-		sb.append("<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Dump Kohonen SOM</title><style>");
-		sb.append("td { text-align: center; width: 30px; } ");
-		sb.append(".empty { background-color: #FFF; color: #000; } ");
-		sb.append(".error { background-color: #FFF; color: #000; text-decoration: underline; } ");
-		sb.append(".bg0 { background-color: #000; color: #FFF; } ");
-		sb.append(".bg1 { background-color: #0099CC; color: #FFF; } ");
-		sb.append(".bg2 { background-color: #339933; color: #FFF; } ");
-		sb.append(".bg3 { background-color: #996633; color: #FFF; } ");
-		sb.append(".bg4 { background-color: #FF9933; color: #FFF; } ");
-		sb.append(".bg5 { background-color: #e63900; color: #FFF; } ");
-		sb.append(".bg6 { background-color: #ff66cc; color: #FFF; } ");
-		sb.append(".bg7 { background-color: #9900cc; color: #FFF; } ");
-		sb.append(".bg8 { background-color: #8585ad; color: #FFF; } ");
-		sb.append(".bg9 { background-color: #0039e6; color: #FFF; } ");
-		sb.append("</style></head><body><h2>");
-		sb.append("SOM parameters - Size: " + this.size + " nodes, Epochs: " + this.maxEpochs + ", Variation: " + this.variation); 
-		sb.append("<br/>Total train time: " + this.totalTrainTime + " ms</h2>");
-		sb.append("<table> <tbody> ");
+		sb.append("<!DOCTYPE html>");
+		sb.append("<html>");
+		sb.append("<head>");
+		sb.append("<meta charset=\"utf-8\"><title>Dump Kohonen SOM</title>");
+		sb.append("<link rel=\"stylesheet\" href=\"style.css\"></link>");
+		sb.append("</head>");
+				  
+		sb.append("<body>");
+		sb.append("<h2>");
+		sb.append("SOM properties - Size: " + this.size + " nodes, Epochs: " + this.maxEpochs + ", Variation: " + this.variation + ", Start Learning Rate:" + this.startLearningRate + ", Radius: " + this.startRadius);
+		sb.append("<br/>Total train time: " + this.totalTrainTime + " ms");
+		sb.append("<br/>Total hit rate: " + this.totalHitRate3f());
+		sb.append("</h2>");
+		sb.append("<hr/>");
+		sb.append("<table>");
+		sb.append("<tbody>");
+		sb.append("<tr>");
+		sb.append("<td>VALUE</td>");
+		
+		for (i = 0; i < 10; i++) {
+			sb.append("<td class=\"bg" + i + " text-white\">" + i + "</td>");
+		}
+		
+		sb.append("<td>TOTAL</td>");
+		sb.append("</tr>");
+		sb.append("<tr>");
+		sb.append("<td>HITS</td>");
+		
+		for (i = 0; i < 10; i++) {
+			sb.append("<td class=\"bg" + i + " text-white\">" + this.hits[i] + "</td>");
+		}
+		sb.append("<td>" + this.totalHits() + "</td>");
+		sb.append("</tr>");
+		
+		sb.append("<tr>");
+		sb.append("<td>ERRORS</td>");
+		
+		for (i = 0; i < 10; i++) {
+			sb.append("<td class=\"bg" + i + " text-white\">" + this.errors[i] + "</td>");
+		}
+		sb.append("<td>" + this.totalErrors() + "</td>");
+		
+		sb.append("</tr>");
+		sb.append("<tr>");
+		sb.append("<td>HIT RATE</td>");
+		
+		for (i = 0; i < 10; i++) {
+			sb.append("<td class=\"bg" + i + " text-white\">" + String.format("%.3f", this.hitRate[i]) + "%</td>");
+		}
+		sb.append("<td>" + this.totalHitRate3f() + "%</td>");
+		
+		sb.append("</tr>");
+		sb.append("</tbody>");
+		sb.append("</table>");
+		
+		sb.append("<hr/>");
+		sb.append("<input type=\"checkbox\" id=\"ckbChangeColorErrorNodes\" onchange=\"startStopAlternateClass(this.checked)\" />");
+		sb.append("<label for=\"ckbChangeColorErrorNodes\"> Change color error nodes</label>");		
+		
+		sb.append("<table><tbody>");
 			
-		for (int i = 0; i < this.size; i++) {
+		for (i = 0; i < this.size; i++) {
 			sb.append("<tr> ");
-			for (int j = 0; j < this.size; j++) {
-				phValue = this.crossValidationPlaceholder[i][j];
-				if (phValue == null) {
-					phValue = STREMPTY;
+			for (j = 0; j < this.size; j++) {
+				
+				phValue = STREMPTY;
+				tdTitle = STREMPTY;
+				
+				for (k = 0; k < 10; k++) {
+					if (this.neurons[i][j].tested[k] > 0) {
+						phValue += k;
+						if (tdTitle.length() > 0)
+							tdTitle += ", ";
+						tdTitle += k + ":" + this.neurons[i][j].tested[k];
+					}
+				}
+				
+				if (phValue == STREMPTY) {
 					cssClass = "empty";
+					phValue = "-";
 				}
 				else if (phValue.length() > 1) {
 					cssClass = "error";
 				}
 				else {
-					cssClass = "bg" + phValue;
+					cssClass = "bg" + phValue.charAt(0) + " text-white";
 				}
-				
-				sb.append("<td id=\"" + i + UNDERSCORE + j + "\" class=\"" + cssClass + "\">" + phValue + "</td> ");
+				sb.append("<td id=\"" + i + UNDERSCORE + j + "\" class=\"" + cssClass + "\" title=\"" + tdTitle + "\">" + phValue + "</td> ");
 			}
 			sb.append("</tr> ");
 		}
 		
-		sb.append("</tbody></table><hr/>");
-		sb.append("Refresh <span id=\"spnErrorNodeCount\"></span> class error node interval: <select id=\"sltInterval\">");
-		sb.append("<option value=\"2000\">2 sec.</option><option value=\"3000\">3 sec.</option>");
-		sb.append("<option value=\"5000\">5 sec.</option><option value=\"10000\">10 sec.</option>");
-		sb.append("</select></body>");
-
-		sb.append("<script type=\"text/javascript\">");
-		sb.append("  var cellsError;");
-		sb.append("  var ids = [];");
-		sb.append("  var values = [];");
-		sb.append("  cellsError = document.getElementsByClassName(\"error\");");
-		sb.append("  for (i = 0; i < cellsError.length; i++) {");
-		sb.append("	   ids.push(cellsError[i].id);");
-		sb.append("	   values.push(cellsError[i].innerText);");
-		sb.append("  };" );
-		sb.append("  document.getElementById(\"spnErrorNodeCount\").innerText = ids.length;");
-		sb.append("  for (i = 0; i < ids.length; i++) alternateClass(i, 0);");
-		sb.append("  function alternateClass(i, j) {");
-		sb.append("	   if (j >= values[i].length) j = 0;");
-		sb.append("	   var elem = document.getElementById(ids[i]);");
-		sb.append("	   elem.className = \"bg\" + values[i][j];");
-		sb.append("	   setTimeout(function () { alternateClass(i, ++j) }, document.getElementById(\"sltInterval\").value);");
-		sb.append("  }");
-		sb.append("</script></html>");
+		sb.append("</tbody></table>");
+		sb.append("<script type=\"text/javascript\" src=\"script.js\"></script>");
+		sb.append("</body>");
+		sb.append("</html>");
 		
 		try {
 			

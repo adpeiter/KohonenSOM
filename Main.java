@@ -9,7 +9,7 @@ class Main {
  
 	private static String FILE_NAME_TRAIN = "database/optdigits-orig.tra";
 	private static String FILE_NAME_VALIDATION = "database/optdigits-orig.cv";
-	private static double VARIATION = 0.000001;
+	private static double VARIATION = 0.000000001;
 	private static double START_LEARNING_RATE = 0.1;
 	private static int EPOCHS = 100;
 	private static int DATA_DIMENSION = 32*32;
@@ -27,7 +27,6 @@ class Main {
 	
     public static void main (String args[]) {
     
-		int testResult[] = new int[2];
 		int totalTests;
 		
 		if (args != null) {
@@ -58,11 +57,8 @@ class Main {
 		som.initialiseNeurons();
 		som.train();
 		som.readCrossValidadionDataSet(FILE_NAME_VALIDATION);
-		som.test(testResult);
+		som.test();
 		som.dumpTest();
-        
-		totalTests = testResult[0] + testResult[1];
-		System.out.println("Hits: " + testResult[0] + " de " + totalTests + " rate: " + ((double)testResult[0] / (double)totalTests)); 
 		
     }
 }

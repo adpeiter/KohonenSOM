@@ -7,6 +7,8 @@ class Neuron {
     int y;
 	double distance; // a última distância calculada
 	int mappedChars[];
+	int tested[];
+	
 	int lastMappedChar;
 	
 	
@@ -14,8 +16,11 @@ class Neuron {
 		this.x = x;
 		this.y = y;
 		this.mappedChars = new int[10];
-		for (int i = 0; i < 10; i++)
+		this.tested = new int[10];
+		for (int i = 0; i < 10; i++) {
 			this.mappedChars[i] = 0;
+			this.tested[i] = 0;
+		}
 	}
 	
 	public double distance(double[] data) { // calcula a distância de um vetor de dados para o vetor de pesos de um neurônio

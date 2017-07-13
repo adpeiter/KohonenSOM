@@ -1,0 +1,14 @@
+td { text-align: center; width: 60px; padding: 5px }
+.empty { background-color: #FFF;}
+.error { background-color: #FFF; color: #FF0000; text-decoration: underline; }
+.bg0 { background-color: #000; }
+.bg1 { background-color: #0099CC; }
+.bg2 { background-color: #339933; }
+.bg3 { background-color: #996633; }
+.bg4 { background-color: #FF9933; }
+.bg5 { background-color: #e63900; }
+.bg6 { background-color: #ff66cc; }
+.bg7 { background-color: #9900cc; }
+.bg8 { background-color: #8585ad; }
+.bg9 { background-color: #0039e6; }
+.text-white { color: #FFF; }
