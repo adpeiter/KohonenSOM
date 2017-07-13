@@ -106,7 +106,8 @@ class SOM {
 			
 		}
 		catch (Exception ex) {
-			System.out.println("Crash on read data file...");
+			System.out.println("Fail to read data file: ");
+			ex.printStackTrace();
 			dataSet = null;
 		}
 		
@@ -198,7 +199,7 @@ class SOM {
 		
 		msEndTrain = System.currentTimeMillis();
 		this.totalTrainTime = msEndTrain - msStartTrain;
-		System.out.println("Tempo total do treinamento: " + this.totalTrainTime + " s");
+		System.out.println("Totail training time: " + this.totalTrainTime + " s");
 		
 	}
 	
@@ -293,13 +294,13 @@ class SOM {
 		String phValue, cssClass, dumpFileName, tdTitle;
 		int i, j, k;
 		
-		dumpFileName = "S" + this.size + "_E" + this.maxEpochs + "_L" + (this.startLearningRate  + "_R" + this.startRadius).replace(".", "d") + ".html";
+		dumpFileName = "dump/S" + this.size + "_E" + this.maxEpochs + "_L" + (this.startLearningRate  + "_R" + this.startRadius).replace(".", "d") + ".html";
 		
 		sb.append("<!DOCTYPE html>");
 		sb.append("<html>");
 		sb.append("<head>");
 		sb.append("<meta charset=\"utf-8\"><title>Dump Kohonen SOM</title>");
-		sb.append("<link rel=\"stylesheet\" href=\"style.css\"></link>");
+		sb.append("<link rel=\"stylesheet\" href=\"css/style.css\"></link>");
 		sb.append("</head>");
 				  
 		sb.append("<body>");
@@ -388,7 +389,7 @@ class SOM {
 		}
 		
 		sb.append("</tbody></table>");
-		sb.append("<script type=\"text/javascript\" src=\"script.js\"></script>");
+		sb.append("<script type=\"text/javascript\" src=\"js/script.js\"></script>");
 		sb.append("</body>");
 		sb.append("</html>");
 		
@@ -397,11 +398,14 @@ class SOM {
 			PrintWriter writer = new PrintWriter(dumpFileName, "UTF-8");			
 			writer.print(sb.toString());
 			writer.close();
-			Desktop.getDesktop().browse(new URI(dumpFileName));
+			
+			File htmlFile = new File(dumpFileName);
+			Desktop.getDesktop().browse(htmlFile.toURI());
 			
 		}
 		catch (Exception ex) {
-			System.out.println("Fail to open dump...");
+			System.out.println("Fail to open dump: ");
+			ex.printStackTrace();
 		}
 		
 	}
